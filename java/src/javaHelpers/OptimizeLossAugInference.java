@@ -22,7 +22,7 @@ public class OptimizeLossAugInference {
 	static int MAX_ITERS_SUB_DESCENT = 10;
 	
 	public static ArrayList<YZPredicted> optimizeLossAugInferenceDD(ArrayList<DataItem> dataset, 
-			LabelWeights [] zWeights, double simFracParam, int num_nils) throws IOException, IloException{
+			LabelWeights [] zWeights, double simFracParam) throws IOException, IloException{
 
 		// Initialize t = 0 and Lambda^0
 		// repeat
@@ -46,7 +46,7 @@ public class OptimizeLossAugInference {
 
 		// init Lambda
 		for(int i = 0; i < dataset.size(); i ++){
-			for(int l = 0; l < zWeights.length; l ++){
+			for(int l = 1; l < zWeights.length; l ++){
 				Lambda[i][l] = 0.0;
 			}
 		}
@@ -59,7 +59,7 @@ public class OptimizeLossAugInference {
 			t++;
 
 			//******* Loss Lag *****************************************************
-			YtildeStar = LossLagrangian.optLossLag(dataset, zWeights.length-1, regions, Lambda, num_nils);
+			YtildeStar = LossLagrangian.optLossLag(dataset, zWeights.length-1, regions, Lambda);
 			
 			long endlosslag = System.currentTimeMillis();
 			double timelosslag = (double)(endlosslag - startiter) / 1000.0;
@@ -86,34 +86,15 @@ public class OptimizeLossAugInference {
 				break; 
 			}
 				
+
 			double eta = 1.0 / Math.sqrt(t);
-			
-			/// Update rule when no weighting scheme of examples is used
-/*			for(int i = 0; i < dataset.size(); i ++){
+			for(int i = 0; i < dataset.size(); i ++){
 				for(int l = 1; l < zWeights.length; l ++){
 
 					double ystar_il = YtildeStar.get(i).getYPredicted().getCount(l);
 					double ydashstar_il = YtildeDashStar.get(i).getYPredicted().getCount(l);		
 
 					Lambda[i][l] = Lambda[i][l] -  ( eta * (ystar_il - ydashstar_il));
-				}
-			}
-*/			
-			/// Update rule when examples are weighted (nil labels and non-nil labels are weighted differently)
-			for(int i = 0; i < dataset.size(); i ++){
-				
-				for(int l = 1; l < zWeights.length; l ++){
-
-					double ystar_il = YtildeStar.get(i).getYPredicted().getCount(l);
-					double ydashstar_il = YtildeDashStar.get(i).getYPredicted().getCount(l);		
-
-					// either ystar_i or ydashstar_i is nil
-					if(YtildeStar.get(i).getYPredicted().size() == 0 || YtildeDashStar.get(i).getYPredicted().size() == 0){
-						Lambda[i][0] = Lambda[i][0] -  ( eta * (ystar_il - ydashstar_il));
-					}
-					else {
-						Lambda[i][l] = Lambda[i][l] -  ( eta * (ystar_il - ydashstar_il));
-					}
 				}
 			}
 			
@@ -174,13 +155,7 @@ public class OptimizeLossAugInference {
 		LabelWeights [] zWeights = Utils.initializeLabelWeights(currentParametersFile);
 		ArrayList<DataItem> dataset = Utils.populateDataset(datasetFile);
 		
-		int num_nils = 0;
-		for(int i = 0; i < dataset.size(); i ++){
-			if(dataset.get(i).ylabel.length == 0)
-				num_nils++;
-		}
-		
-		ArrayList<YZPredicted> yzPredictedAll = optimizeLossAugInferenceDD(dataset, zWeights, simFracParam, num_nils);
+		ArrayList<YZPredicted> yzPredictedAll = optimizeLossAugInferenceDD(dataset, zWeights, simFracParam);
 	
 	}
 	

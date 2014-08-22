@@ -160,107 +160,6 @@ public class LossLagrangian {
 		return variables;
 		
 	}
-
-	static double buildCplexModel_weighting(IloCplex cplexModel, ArrayList<IloNumVar[]> variables, Region r,
-			ArrayList<DataItem> dataset, int numPosLabels, double[][] Lambda, int num_nils) throws IloException{
-		
-		double A[] = r.p1;
-		double B[] = r.p2;
-		double C[] = r.p3;
-		double alpha_r = r.coeff[0];
-		double beta_r = r.coeff[1];
-		double gamma_r = r.coeff[2];
-
-		double regionConstant = gamma_r;
-		
-		int num_non_nils = dataset.size() - num_nils;
-		
-		IloLinearNumExpr objective = cplexModel.linearNumExpr();
-		IloLinearNumExpr constraint1 = cplexModel.linearNumExpr();
-		double cons_constraint1 = 0.0;
-		IloLinearNumExpr constraint2 = cplexModel.linearNumExpr();
-		double cons_constraint2 = 0.0;
-		IloLinearNumExpr constraint3 = cplexModel.linearNumExpr();
-		double cons_constraint3 = 0.0;
-
-		for(int i = 0; i < dataset.size(); i ++){ // For every datum in training dataset
-
-			int yi[] = initVec(dataset.get(i).ylabel, numPosLabels);
-			
-			for(int l = 1; l <= numPosLabels; l ++){ // For every label-id
-
-				//////////////////////////////~y_i,l //////////////////////////////////////////////////
-				
-				double coeff = 0;
-				
-				boolean isNilLabel = (yi[0] == 1);
-				
-				/// if (y_i is nil) ..... 
-				if(isNilLabel){
-//					coeff = Lambda[i][0] 
-//						  + (alpha_r / num_nils);
-					coeff = Lambda[i][0] 
-							  + (alpha_r);
-				}
-				else {
-//					coeff = Lambda[i][l] 
-//						+ ((alpha_r * (1 - yi[l]))/num_non_nils) 
-//						- ((beta_r * yi[l])/num_non_nils);
-					
-					coeff = Lambda[i][l] 
-							+ ((alpha_r * (1 - yi[l]) * num_nils)/num_non_nils) 
-							- ((beta_r * yi[l] * num_nils)/num_non_nils);
-					
-//					regionConstant += (beta_r *  yi[l])/num_non_nils;					// \sum_i,l beta_r * y_i,l
-					
-					regionConstant += (beta_r *  yi[l] * num_nils)/num_non_nils;
-				}
-				
-				// Add ~y_i,l to the objective function
-				//String varName = new StringBuffer("ytilde_"+i+"_"+l).toString();
-				//IloNumVar var = model.numVar(0, 1, varType, varName);
-				IloNumVar var = variables.get(i)[l-1];
-				objective.addTerm(coeff, var);
-
-
-				// Add ~y_i,l to the first constraint
-				Pair<Double, Double> c1_coeffs = computeConstraintCoeff_weighting(A, B, C, yi[l], num_non_nils, isNilLabel, num_nils);
-				constraint1.addTerm(c1_coeffs.first(), var);
-				cons_constraint1 += c1_coeffs.second();
-
-				// Add ~y_i,l to the second constraint
-				Pair<Double, Double> c2_coeffs = computeConstraintCoeff_weighting(B, C, A, yi[l], num_non_nils, isNilLabel, num_nils);
-				constraint2.addTerm(c2_coeffs.first(), var);
-				cons_constraint2 += c2_coeffs.second();
-
-				// Add ~y_i,l to the third constraint
-				Pair<Double, Double> c3_coeffs = computeConstraintCoeff_weighting(A, C, B, yi[l], num_non_nils, isNilLabel, num_nils);
-				constraint3.addTerm(c3_coeffs.first(), var);
-				cons_constraint3 += c3_coeffs.second();
-
-				////////////////////////////// ~y_i,l //////////////////////////////////////////////////
-
-			} // END: For every label-id
-
-		} // END: For every datum in training dataset
-
-		Triple<Double, Double, Double> c1 =  compute_k1k2k3 (A, B, C);
-		cons_constraint1 += ((-c1.first() * c1.second() * A[1]) + (c1.first() * c1.third() * A[0]));
-
-		Triple<Double, Double, Double> c2 =  compute_k1k2k3 (B, C, A);
-		cons_constraint2 += ((-c2.first() * c2.second() * B[1]) + (c2.first() * c2.third() * B[0]));
-
-		Triple<Double, Double, Double> c3 =  compute_k1k2k3 (A, C, B);
-		cons_constraint3 += ((-c3.first() * c3.second() * A[1]) + (c3.first() * c3.third() * A[0]));
-
-		// Create the LP/ILP problem object and add the objective and constraints to it. 
-		cplexModel.addMaximize(objective);
-		cplexModel.addGe(constraint1, -cons_constraint1);
-		cplexModel.addGe(constraint2, -cons_constraint2);
-		cplexModel.addGe(constraint3, -cons_constraint3);
-
-		return regionConstant;
-	}
 	
 	static double buildCplexModel(IloCplex cplexModel, ArrayList<IloNumVar[]> variables, Region r,
 			ArrayList<DataItem> dataset, int numPosLabels, double[][] Lambda) throws IloException{
@@ -299,7 +198,7 @@ public class LossLagrangian {
 				IloNumVar var = variables.get(i)[l-1];
 				objective.addTerm(coeff, var);
 
-				regionConstant += beta_r *  yi[l];					// \sum_i,l beta_r * y_i,l
+				regionConstant += r.coeff[1] *  yi[l];					// \sum_i,l beta_r * y_i,l
 
 				// Add ~y_i,l to the first constraint
 				Pair<Double, Double> c1_coeffs = computeConstraintCoeff(A, B, C, yi[l]);
@@ -341,7 +240,7 @@ public class LossLagrangian {
 	}
 	
 	public static ArrayList<YZPredicted> optLossLag(ArrayList<DataItem> dataset, int numPosLabels, 
-			ArrayList<Region> regions, double[][] Lambda, int num_nils) throws IOException, IloException{
+			ArrayList<Region> regions, double[][] Lambda) throws IOException, IloException{
 		ArrayList<YZPredicted> YtildeStar= new ArrayList<YZPredicted>();
 		
 		long startFunction = System.currentTimeMillis();
@@ -359,7 +258,7 @@ public class LossLagrangian {
 			
 			// Build the LP problem model
 			ArrayList<IloNumVar[]> variables = initVariablesForLP(cplexModel,  dataset.size(), numPosLabels);
-			double regionObjValue = buildCplexModel_weighting(cplexModel, variables, r, dataset, numPosLabels, Lambda, num_nils); // return value is constant for a region in the LP formula. Added to the solved value of max objective
+			double regionObjValue = buildCplexModel(cplexModel, variables, r, dataset, numPosLabels, Lambda); // return value is constant for a region in the LP formula. Added to the solved value of max objective
 			
 			// Solve the LP
 			if ( cplexModel.solve() ) {
@@ -393,7 +292,7 @@ public class LossLagrangian {
 
 		// Build the LP problem model for the max region 
 		ArrayList<IloNumVar[]> variables = initVariablesForLP(cplexModel,  dataset.size(), numPosLabels);
-		buildCplexModel_weighting(cplexModel, variables, r, dataset, numPosLabels, Lambda, num_nils);
+		buildCplexModel(cplexModel, variables, r, dataset, numPosLabels, Lambda);
 		
 		// Solve the cplex model
 		cplexModel.solve();
@@ -497,30 +396,6 @@ public class LossLagrangian {
 		return new Triple<Double, Double, Double>(k1, k2, k3);
 	}
 	
-	public static Pair<Double, Double> computeConstraintCoeff_weighting(double[] A, double[] B, double[] C, int y_il, int num_non_nils, boolean isNilLabel, int num_nils){
-		
-		
-		double k1 = ( (B[0] - A[0])*(C[1] - A[1]) ) - ( (B[1] - A[1])*(C[0] - A[0]) ); // (Bx - Ax)(Cy - Ay) - (By - Ay)(Cx - Ax)
-		double k2 = ( B[0] - A[0] ); // Bx - Ax
-		double k3 = ( B[1] - A[1] ); // By - Ay
-		
-		double coeff = 0; 
-		if(isNilLabel) {
-			// coeff = ((-k1*k2*y_il)/num_non_nils) - ((k1*k3)/num_nils); // -k1*k2*y_i,l - k1*k3*(1-y_i,l)
-			coeff = ((-k1*k2*y_il*num_nils)/num_non_nils) - ((k1*k3));
-		}
-		else {
-			coeff = (((-k1*k2*y_il)/num_non_nils) - ((k1*k3*(1 - y_il))/num_non_nils))* num_nils;
-		}
-				
-		double constant = (k1 * k2 * y_il * num_nils)/num_non_nils; //Constant in the constraint
-		
-		//varCoeffs[0][0] += (-k1 * k2 * A[1] + k1 * k3 * A[0]); //Constant in the constraint
-		
-		return new Pair<Double, Double>(coeff, constant);
-		
-	}
-	
 	public static Pair<Double, Double> computeConstraintCoeff(double[] A, double[] B, double[] C, int y_il ){
 		
 		
@@ -540,11 +415,8 @@ public class LossLagrangian {
 	}
 	
 	public static int[] initVec(int ygold[], int sz){
-		int yi[] = new int[sz+1]; // 0 position is nil label; so one extra element is  created ( 1 .. 51)
+		int yi[] = new int[sz+1]; // 0 position is nil label and is not filled; so one extra element is  created ( 1 .. 51)
 		Arrays.fill(yi, 0);
-		
-		if(ygold.length == 0)
-			yi[0] = 1;
 		
 		for(int y : ygold)
 			yi[y] = 1;
@@ -562,19 +434,14 @@ public class LossLagrangian {
 		
 		double Lambda[][] = new double[dataset.size()][52];
 
-		int num_nils = 0;
-		
 		// init Lambda
 		for(int i = 0; i < dataset.size(); i ++){
-			if(dataset.get(i).ylabel.length == 0)
-				num_nils++;
-			
 			for(int j = 1; j < 51; j ++){
 				Lambda[i][j] = Math.random();
 			}
 		}
 		
-		ArrayList<YZPredicted> YtildeStar = optLossLag(dataset, 51, regions, Lambda, num_nils);
+		ArrayList<YZPredicted> YtildeStar = optLossLag(dataset, 51, regions, Lambda);
 		
 		int numPosLabels = 0;
 		for(int i = 0; i < YtildeStar.size(); i++){

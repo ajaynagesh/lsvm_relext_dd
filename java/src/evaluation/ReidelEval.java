@@ -65,7 +65,7 @@ public class ReidelEval {
 		
 		Triple<Double, Double, Double> score =  computeFinalscore(goldLabels, predictedLabels);
 		System.out.println("P " + score.first() + " R " + score.second() + " F1 " + score.third());
-
+		macroF1score(goldLabels, predictedLabels);
 
 		// Genetate P/R curve
 		String curveFile = "max_margin" + ".curve";
@@ -135,21 +135,118 @@ public class ReidelEval {
 	public static Triple<Double, Double, Double> computeFinalscore(
 			List<Set<String>> goldLabels,
 			List<Counter<String>> predictedLabels) {
-		int total = 0, predicted = 0, correct = 0;
-		for(int i = 0; i < goldLabels.size(); i ++) {
-			Set<String> gold = goldLabels.get(i);
-			Counter<String> preds = predictedLabels.get(i);
-			total += gold.size();
-			predicted += preds.size();
-			for(String label: preds.keySet()) {
-				if(gold.contains(label)) correct ++;
-			}
-		}
+		
+		  int numNils = 0, numNilsCorrect = 0, nilsPredAsNonNils = 0, nonNilPredAsNil = 0;
+		  
+		    int total = 0, predicted = 0, correct = 0;
+		    for(int i = 0; i < goldLabels.size(); i ++) {
+		      Set<String> gold = goldLabels.get(i);
+		      Counter<String> preds = predictedLabels.get(i);
+		      
+		      if(gold.size() == 0 && preds.size() == 0){
+		    	  numNils++;
+		    	  numNilsCorrect++;
+		      }
+		      else if(gold.size() == 0 && preds.size() > 0){
+		    	  numNils++;
+		    	  nilsPredAsNonNils++;
+		      }
+		      else if(gold.size() > 0 && preds.size() == 0){
+		    	  nonNilPredAsNil++;
+		      }
+		      
+		      total += gold.size();
+		      predicted += preds.size();
+		      for(String label: preds.keySet()) {
+		        if(gold.contains(label)) correct ++;
+		      }
+		    }
+		    
+			//System.out.println("score: Correct : " + correct + "\nPredicted : " + predicted + "\nTotal : " + total);
+		    System.out.println("Nils = " + numNils + "\tNilsCorrect = " + numNilsCorrect);
+		    System.out.println("NilsPredAsNonNils = " + nilsPredAsNonNils + "\tNonNilsPredAsNils = " + nonNilPredAsNil);
+		    
+		    double p = (double) correct / (double) predicted;
+		    double r = (double) correct / (double) total;
+		    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+		    return new Triple<Double, Double, Double>(p, r, f1);
 
-		double p = (double) correct / (double) predicted;
-		double r = (double) correct / (double) total;
-		double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
-		return new Triple<Double, Double, Double>(p, r, f1);
 	}
-
+	
+	public static void macroF1score (List<Set<String>> goldLabels,
+		      List<Counter<String>> predictedLabels){
+		
+		  Counter<String> total = new ClassicCounter<String>();
+		  Counter<String> predicted = new ClassicCounter<String>();
+		  Counter<String> correct = new ClassicCounter<String>();
+		    
+		  for(int i = 0; i < goldLabels.size(); i ++) {
+		      
+			  Set<String> gold = goldLabels.get(i);
+		      Counter<String> preds = predictedLabels.get(i);
+		      
+		      for(String gold_label : gold){
+		    	  total.incrementCount(gold_label);
+		      }
+		      for(String pred_label : preds.keySet()){
+		    	  predicted.incrementCount(pred_label);
+		      }
+		   
+		      for(String label: preds.keySet()) {
+		        if(gold.contains(label)) 
+		        	correct.incrementCount(label);
+		      }
+		   }
+		  
+		  Set<String> labels_set = total.keySet();
+		  ArrayList<String> labels = new ArrayList<String>();
+		  for(String l : labels_set){
+			  labels.add(l);
+		  }
+		  double macroFscore = 0;
+		  Collections.sort(labels);
+		  for(String label : labels){
+			  	double p = (predicted.getCount(label) > 0 ) ? (double) correct.getCount(label) / (double) predicted.getCount(label) : 0 ;
+			    double r = (double) correct.getCount(label) / (double) total.getCount(label);
+			    double f1 = (p != 0 && r != 0 ? 2*p*r/(p+r) : 0);
+			    System.out.println(label + "\t" + total.getCount(label) + "\t" + p + "\t" + r + "\t" + f1);
+			    //System.out.println(p + "\t" + r + "\t" + f1);
+			    
+			    macroFscore += f1;
+		  }
+		  
+		  macroFscore = macroFscore / (labels.size()+2);
+		  System.out.println("Macro F score : " + macroFscore);
+		    
+		  System.out.println("-----------------------------------");
+		  
+		  Counter<String> confusion = new ClassicCounter<String>();
+		  String label_to_investigate = "/people/deceased_person/place_of_death";
+		  int countInData = 0;
+		  for(int i = 0; i < goldLabels.size(); i ++) {
+		      
+			  Set<String> gold = goldLabels.get(i);
+		      Counter<String> preds = predictedLabels.get(i);
+		     
+		      if(gold.contains(label_to_investigate)){
+		    	  countInData ++;
+		    	  boolean toPrint = true;
+		    	  for(String p : preds.keySet()){
+		    		  if(p.equals(label_to_investigate)){
+		    			  toPrint = false;
+		    			  break;
+		    		  }
+		    	  }
+		    	  if(toPrint) {
+//		    		  System.out.print("gold : " + gold);
+//		    		  System.out.println("\tpred : " + preds.keySet());
+		    		  confusion.incrementCount(preds.keySet().toString());
+		    	  }
+		      }
+		  }
+		  
+		  System.out.println(label_to_investigate + " ( " + countInData + " )");
+		  for(String s : confusion.keySet())
+			  System.out.println(s+"\t"+confusion.getCount(s));
+	  }
 }

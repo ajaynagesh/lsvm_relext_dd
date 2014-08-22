@@ -612,7 +612,7 @@ public class InferenceWrappers {
 //			for(Constraint c : problem.getConstraints())
 //				System.out.println(c);
 			
-			System.err.println("LossAugInf(F1 loss): Result is NULL ... " + "...  Skipping this");
+			System.err.println("LossAugInf(hamming): Result is NULL ... " + "...  Skipping this");
 			
 			return predictedVals;
 

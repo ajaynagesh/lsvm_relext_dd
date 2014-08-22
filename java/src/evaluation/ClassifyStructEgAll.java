@@ -122,11 +122,12 @@ public class ClassifyStructEgAll {
 	      if(weights == null) throw new RuntimeException("NULL weights!");
 	      if(entry.getKey() < 0 /*|| entry.getKey() >= weights.length*/) throw new RuntimeException("Invalid key " + entry.getKey() + ". Should be >= 0 and < " + weights.length);
 	      if(entry.getKey() >= weights.length){
-	    	  System.err.println("Feature missing in training .... " + entry.getKey());
+	    	  //System.err.println("Feature missing in training .... " + entry.getKey());
 	    	  dotProd += 0;
 	      }
 	      else
 	    	  dotProd += entry.getValue() * weights[entry.getKey()];
+	      
 	    }
 	    return dotProd;
 	  }

@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="lib/stanford-corenlp-2012-05-22.jar" sourcepath="/home/ajay/git/mimlre-ext/libsrc/stanford-corenlp-2012-05-22-sources.jar"/>
+	<classpathentry kind="lib" path="lib/stanford-corenlp-2012-05-22.jar"/>
 	<classpathentry kind="lib" path="lib/javailp-1.2a.jar"/>
 	<classpathentry kind="lib" path="lib/lpsolve55j.jar"/>
 	<classpathentry kind="lib" path="lib/cplex.jar">

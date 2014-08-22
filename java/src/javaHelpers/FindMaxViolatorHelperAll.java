@@ -134,14 +134,8 @@ public class FindMaxViolatorHelperAll {
 		
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(currentParametersFile+".result")));
 		
-		int num_nils = 0;
-		for(int i = 0; i < dataset.size(); i ++){
-			if(dataset.get(i).ylabel.length == 0)
-				num_nils++;
-		}
-		
 		// ********* Calling the LossAugmented Inference procedure which is a sub-gradient method ************** 
-		ArrayList<YZPredicted> yzPredictedAll = OptimizeLossAugInference.optimizeLossAugInferenceDD(dataset, zWeights, simFracParam, num_nils);
+		ArrayList<YZPredicted> yzPredictedAll = OptimizeLossAugInference.optimizeLossAugInferenceDD(dataset, zWeights, simFracParam);
 		
 		for(int i = 0; i < dataset.size(); i++){
 		
