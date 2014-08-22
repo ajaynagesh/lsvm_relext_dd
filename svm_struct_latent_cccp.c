@@ -497,7 +497,7 @@ double cutting_plane_algorithm(double *w, long m, int MAX_ITER, double C, double
 
 int main(int argc, char* argv[]) {
 
-	printf("Runs with F1 loss in the loss-augmented objective...with fracSim=0.9");
+	printf("Runs with F1 loss in the loss-augmented objective...with fracSim=0.9 .. only positive data");
 
   double *w; /* weight vector */
   int outer_iter;
@@ -698,8 +698,8 @@ void my_read_input_parameters(int argc, char *argv[], char *trainfile, char* mod
   learn_parm->maxiter=20000;
   learn_parm->svm_maxqpsize=100;
   learn_parm->svm_c=100.0;
-  learn_parm->eps=0.001;
-  //learn_parm->eps=0.1; //AJAY: Changing for faster convergence
+  //learn_parm->eps=0.001;
+  learn_parm->eps=0.1; //AJAY: Changing for faster convergence
   learn_parm->biased_hyperplane=12345; /* store random seed */
   learn_parm->remove_inconsistent=10; 
   kernel_parm->kernel_type=0;

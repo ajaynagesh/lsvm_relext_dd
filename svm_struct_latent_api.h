@@ -14,7 +14,6 @@ LATENT_VAR infer_latent_variables(PATTERN x, LABEL y, STRUCTMODEL *sm, STRUCT_LE
 //double loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm);
 double loss(LABEL y, LABEL ybar, LATENT_VAR hbar, STRUCT_LEARN_PARM *sparm);
 double lossF1(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_PARM *sparm);
-double lossF1_unweigted(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_PARM *sparm);
 void write_struct_model(char *file, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm);
 STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm);
 void free_struct_model(STRUCTMODEL sm, STRUCT_LEARN_PARM *sparm);

@@ -655,7 +655,7 @@ void create_vector(LABEL y, int *y_vec, LABEL ybar, int *ybar_vec) {
 }
 
 // 08/07/2014 : loss function based on F1
-double lossF1_unweigted(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_PARM *sparm) {
+double lossF1(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_PARM *sparm) {
 	double loss = 0.0;
 
 	int num_non_nil_rels = sparm->total_number_rels;
@@ -685,71 +685,7 @@ double lossF1_unweigted(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_P
 
 	loss = (double)(FP + FN) / (2*Np + FP - FN);
 
-	//printf("FP = %f, FN = %f, Loss (F1) is %f\n",FP, FN, loss);
-
-	return (loss);
-}
-
-// 21/07/2014 : loss function based on F1 with weights on nil-labeled and non-nil labeled egs
-double lossF1(EXAMPLE *ex, int numEgs, LABEL *ybar_all, STRUCT_LEARN_PARM *sparm) {
-	double loss = 0.0;
-
-	int num_non_nil_rels = sparm->total_number_rels;
-
-	int i;
-	double FP = 0, FN = 0, Np = 0;
-
-	int num_nil_data = 0, num_non_nil_data = 0;
-
-	for(i = 0; i < numEgs; i ++){
-		LABEL y_i = ex[i].y;
-
-		if(y_i.num_relations == 0)
-			num_nil_data++;
-
-	}
-	num_non_nil_data = numEgs - num_nil_data;
-
-	for(i = 0; i < numEgs; i ++){
-		LABEL y_i = ex[i].y;
-		LABEL ytilde_i = ybar_all[i];
-
-		int * y_i_vec = (int*) calloc(num_non_nil_rels+1, sizeof(int));
-		int * ytilde_i_vec = (int*) calloc(num_non_nil_rels+1, sizeof(int));
-
-		create_vector(y_i, y_i_vec, ytilde_i, ytilde_i_vec);
-
-		// nil data point -- weigh differently
-		if(y_i.num_relations == 0){
-			int l;
-			int s = 0;
-			for(l = 1; l <= num_non_nil_rels; l ++){
-				s += ytilde_i_vec[l];
-			}
-			// FP += (double)(s) / num_nil_data;
-			FP += (double)(s);
-		}
-
-		else {
-			int l;
-			for(l = 1; l <= num_non_nil_rels; l ++){
-//				FP += (double) ( ytilde_i_vec[l] * (1 - y_i_vec[l]) ) / num_non_nil_data;
-//				FN += (double) ( (1 - ytilde_i_vec[l]) * y_i_vec[l] ) / num_non_nil_data;
-
-				FP += (double) ( ytilde_i_vec[l] * (1 - y_i_vec[l]) * num_nil_data) / num_non_nil_data;
-				FN += (double) ( (1 - ytilde_i_vec[l]) * y_i_vec[l] * num_nil_data) / num_non_nil_data;
-
-				Np += y_i_vec[l];
-			}
-		}
-
-		free(y_i_vec);
-		free(ytilde_i_vec);
-	}
-
-	loss = (double)(FP + FN) / (2*Np + FP - FN);
-
-	//printf("FP = %f, FN = %f, Loss (F1) is %f\n",FP, FN, loss);
+	//printf("Loss (F1) is %f\n",loss);
 
 	return (loss);
 }
