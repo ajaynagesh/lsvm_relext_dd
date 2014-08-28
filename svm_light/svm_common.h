@@ -186,6 +186,11 @@ typedef struct learn_parm {
   double svm_unlabbound;
   double *svm_cost;            /* individual upper bounds for each var */
   long   totwords;             /* number of features */
+
+  char tmpdir[50];
+  double frac_sim;
+  char regions_file[50];
+
 } LEARN_PARM;
 
 typedef struct matrix {

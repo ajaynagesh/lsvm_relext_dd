@@ -70,7 +70,7 @@ double* add_list_nn(SVECTOR *a, long totwords)
 }
 
 
-SVECTOR* find_cutting_plane(EXAMPLE *ex, SVECTOR **fycache, double *margin, long m, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm) {
+SVECTOR* find_cutting_plane(EXAMPLE *ex, SVECTOR **fycache, double *margin, long m, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, char* tmpdir, char *trainfile, double frac_sim, char * regions_file) {
 
   long i;
   SVECTOR *f, *fy, *fybar, *lhs;
@@ -88,7 +88,7 @@ SVECTOR* find_cutting_plane(EXAMPLE *ex, SVECTOR **fycache, double *margin, long
   time_t mv_start, mv_end;
 
   time(&mv_start);
-  find_most_violated_constraint_marginrescaling_all(ybar_all, hbar_all, sm, sparm, m);
+  find_most_violated_constraint_marginrescaling_all(ybar_all, hbar_all, sm, sparm, m, tmpdir, trainfile, frac_sim, regions_file);
   time(&mv_end);
 
 #if (DEBUG_LEVEL==1)
@@ -161,7 +161,7 @@ SVECTOR* find_cutting_plane(EXAMPLE *ex, SVECTOR **fycache, double *margin, long
 }
 
 
-double cutting_plane_algorithm(double *w, long m, int MAX_ITER, double C, double epsilon, SVECTOR **fycache, EXAMPLE *ex, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm) {
+double cutting_plane_algorithm(double *w, long m, int MAX_ITER, double C, double epsilon, SVECTOR **fycache, EXAMPLE *ex, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, char *tmpdir, char * trainfile, double frac_sim, char * regions_file) {
   long i,j;
   double xi;
   double *alpha;
@@ -226,7 +226,7 @@ double cutting_plane_algorithm(double *w, long m, int MAX_ITER, double C, double
   proximal_rhs = NULL;
   cut_error = NULL; 
 
-  new_constraint = find_cutting_plane(ex, fycache, &margin, m, sm, sparm);
+  new_constraint = find_cutting_plane(ex, fycache, &margin, m, sm, sparm, tmpdir, trainfile, frac_sim, regions_file);
   value = margin - sprod_ns(w, new_constraint);
 	
   primal_obj_b = 0.5*sprod_nn(w_b,w_b,sm->sizePsi)+C*value;
@@ -367,7 +367,7 @@ double cutting_plane_algorithm(double *w, long m, int MAX_ITER, double C, double
       }
     }
 
-    new_constraint = find_cutting_plane(ex, fycache, &margin, m, sm, sparm);
+    new_constraint = find_cutting_plane(ex, fycache, &margin, m, sm, sparm, tmpdir, trainfile, frac_sim, regions_file);
     value = margin - sprod_ns(w, new_constraint);
 
     /* print primal objective */
@@ -608,7 +608,7 @@ int main(int argc, char* argv[]) {
     /* cutting plane algorithm */
     time_t cp_start, cp_end;
     time(&cp_start);
-    primal_obj = cutting_plane_algorithm(w, m, MAX_ITER, C, cooling_eps, fycache, ex, &sm, &sparm);
+    primal_obj = cutting_plane_algorithm(w, m, MAX_ITER, C, cooling_eps, fycache, ex, &sm, &sparm, learn_parm.tmpdir, trainfile, learn_parm.frac_sim, learn_parm.regions_file);
     time(&cp_end);
 
 #if(DEBUG_LEVEL==1)
@@ -637,7 +637,7 @@ int main(int argc, char* argv[]) {
     	free(imputed_h);
 
     imputed_h = (LATENT_VAR*)malloc(sizeof(LATENT_VAR) * m);
-    infer_latent_variables_all(imputed_h, &sm, &sparm, m);
+    infer_latent_variables_all(imputed_h, &sm, &sparm, m, learn_parm.tmpdir, trainfile);
 
     for (i=0;i<m;i++) {
 //      free_latent_var(ex[i].h);
@@ -720,8 +720,13 @@ void my_read_input_parameters(int argc, char *argv[], char *trainfile, char* mod
     case 'r': i++; learn_parm->biased_hyperplane=atol(argv[i]); break; 
     case 't': i++; kernel_parm->kernel_type=atol(argv[i]); break;
     case 'n': i++; learn_parm->maxiter=atol(argv[i]); break;
-    case 'p': i++; learn_parm->remove_inconsistent=atol(argv[i]); break; 
-    case '-': strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);i++; strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);break; 
+    case 'p': i++; learn_parm->remove_inconsistent=atol(argv[i]); break;
+    case '-': strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);i++; strcpy(struct_parm->custom_argv[struct_parm->custom_argc++],argv[i]);break;
+    // Added by Ajay
+    case 'f': i++; strcpy(learn_parm->tmpdir,argv[i]); printf("Tmp file is %s\n",learn_parm->tmpdir); break;
+    case 'y': i++; learn_parm->frac_sim=atof(argv[i]); break;
+    case 'z': i++; strcpy(learn_parm->regions_file,argv[i]);printf("Regions file is %s\n",learn_parm->regions_file);break;
+   ////////////////////////
     default: printf("\nUnrecognized option %s!\n\n",argv[i]);
       exit(0);
     }

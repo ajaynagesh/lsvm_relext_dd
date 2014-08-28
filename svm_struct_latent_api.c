@@ -432,27 +432,49 @@ void write_to_file_params_t(double *w, long num_of_features, long total_number_r
 
 }
 
-void find_most_violated_constraint_marginrescaling_all(LABEL *ybar_all, LATENT_VAR *hbar_all, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, int numEgs){
+void find_most_violated_constraint_marginrescaling_all(LABEL *ybar_all, LATENT_VAR *hbar_all, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, int numEgs, char *tmpdir, char *trainfile, double frac_sim, char * regions_file){
 
 	// 1. Write input to a file
-	char *filename = "tmpfiles/max_violator_all";
+	char *filename = (char*) malloc(100);
+	strcpy(filename, tmpdir);
+	strcat(filename, "max_violator_all");
+
 	write_to_file_params_t(sm->w, sparm->max_feature_key, sparm->total_number_rels, filename);
 
 	// 2. Call the FindMaxViolatorHelperAll method from JAVA
-	char * cmd = "export LD_LIBRARY_PATH=/usr/lib/lp_solve && "
+//	char * cmd = "export LD_LIBRARY_PATH=/usr/lib/lp_solve && "
+//			" java -Xmx8G -cp java/bin:java/lib/* "
+//			" -Djava.library.path=/opt/ibm/ILOG/CPLEX_Studio124/cplex/bin/x86-64_sles10_4.1/:/usr/lib/lp_solve "
+//			" javaHelpers.FindMaxViolatorHelperAll "
+//			" tmpfiles/max_violator_all dataset/reidel_trainSVM.data 0.9 ";
+
+	char *cmd = malloc(1000);
+	strcpy(cmd,"export LD_LIBRARY_PATH=/usr/lib/lp_solve && "
 			" java -Xmx8G -cp java/bin:java/lib/* "
 			" -Djava.library.path=/opt/ibm/ILOG/CPLEX_Studio124/cplex/bin/x86-64_sles10_4.1/:/usr/lib/lp_solve "
-			" javaHelpers.FindMaxViolatorHelperAll "
-			" tmpfiles/max_violator_all dataset/reidel_trainSVM.data 0.9 ";
+			" javaHelpers.FindMaxViolatorHelperAll ");
+	strcat(cmd,filename);
+	strcat(cmd, " ");
+	strcat(cmd, trainfile);
+	strcat(cmd, " ");
+	char double_str[5]; sprintf(double_str,"%g", frac_sim);
+	strcat(cmd, double_str);
+	strcat(cmd, " ");
+	strcat(cmd, regions_file);
+
 	printf("Executing cmd : %s\n", cmd);fflush(stdout);
 	system(cmd);
 
 
 	// 3. Read the values of ybar_all and hbar_all from the file tmpfiles/max_violator_all.result
-	char *filename_res = "tmpfiles/max_violator_all.result";
+//	char *filename_res = "tmpfiles/max_violator_all.result";
+	char *filename_res = (char*) malloc(100);
+	strcpy(filename_res, tmpdir);
+	strcat(filename_res, "max_violator_all.result");
+
 	FILE *fp = fopen(filename_res,"r");
 	if (fp==NULL) {
-		printf("Cannot open output file %s!\n", filename);
+		printf("Cannot open output file %s!\n", filename_res);
 		exit(1);
 	}
 	int j;
@@ -482,6 +504,9 @@ void find_most_violated_constraint_marginrescaling_all(LABEL *ybar_all, LATENT_V
 		}
 	}
 
+	free(filename);
+	free(filename_res);
+	free(cmd);
 	fclose(fp);
 }
 
@@ -540,25 +565,40 @@ void find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y, LABEL *yb
 
 }
 
-void infer_latent_variables_all(LATENT_VAR *imputed_h, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, int numEgs){
+void infer_latent_variables_all(LATENT_VAR *imputed_h, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm, int numEgs, char* tmpdir, char *trainfile){
 
 	// 1. Write input to a file
-	char *filename = "tmpfiles/inf_lat_var_all";
+	//char *filename = "tmpfiles/inf_lat_var_all";
+	char *filename = (char*) malloc(100);
+	strcpy(filename, tmpdir);
+	strcat(filename,"inf_lat_var_all");
+
 	write_to_file_params_t(sm->w, sparm->max_feature_key, sparm->total_number_rels, filename);
 
 	// 2. Call the InferLatentVarHelperAll method from JAVA
 	// TODO: Modifiy the cmds appropriately
-	char * cmd = " export LD_LIBRARY_PATH=/usr/lib/lp_solve && "
-			" java -Xmx8G -cp java/bin:java/lib/* javaHelpers.InferLatentVarHelperAll "
-			" tmpfiles/inf_lat_var_all dataset/reidel_trainSVM.data ";
+//	char * cmd = " export LD_LIBRARY_PATH=/usr/lib/lp_solve && "
+//			" java -Xmx8G -cp java/bin:java/lib/* javaHelpers.InferLatentVarHelperAll "
+//			" tmpfiles/inf_lat_var_all dataset/reidel_trainSVM.data ";
+	char *cmd = malloc(1000);
+	strcpy(cmd,"export LD_LIBRARY_PATH=/usr/lib/lp_solve && java -Xmx8G -cp java/bin:java/lib/* javaHelpers.InferLatentVarHelperAll ");
+	strcat(cmd,filename);
+	//strcat(command," dataset/reidel_trainSVM.data");
+	strcat(cmd, " ");
+	strcat(cmd, trainfile);
+		//printf("Running : %s\n", command);
 	printf("Executing cmd : %s\n", cmd);fflush(stdout);
 	system(cmd);
 
 	// 3. Read the values of ybar_all and hbar_all from the file tmpfiles/max_violator_all.result
-	char *filename_res = "tmpfiles/inf_lat_var_all.result";
+//	char *filename_res = "tmpfiles/inf_lat_var_all.result";
+	char *filename_res = (char*) malloc(100);
+	strcpy(filename_res, tmpdir);
+	strcat(filename_res, "inf_lat_var_all.result");
+
 	FILE *fp = fopen(filename_res,"r");
 	if (fp==NULL) {
-		printf("Cannot open output file %s!\n", filename);
+		printf("Cannot open output file %s!\n", filename_res);
 		exit(1);
 	}
 	int j;
@@ -576,6 +616,9 @@ void infer_latent_variables_all(LATENT_VAR *imputed_h, STRUCTMODEL *sm, STRUCT_L
 		}
 	}
 
+	free(cmd);
+	free(filename);
+	free(filename_res);
 	fclose(fp);
 
 }
